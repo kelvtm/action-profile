@@ -13,6 +13,9 @@ on:
   schedule:
     - cron: "0 0 * * 0" # Runs at 00:00 every Sunday
 
+env:
+  ECR_REPOSITORY: vprofile-appimage
+
 permissions:
   contents: read
 
@@ -86,3 +89,36 @@ jobs:
         with:
           name: trivy-scan-results
           path: trivy-results.json
+
+  BUILD_AND_PUBLISH:
+    name: BUILD_AND_PUBLISH
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    needs: [Build, Testing, Security-Scan]
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v6-beta
+        with:
+          fetch-depth: 0
+      - name: Configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -f Docker-files/app/multistage/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY:vprofile-app-$IMAGE_TAG
+          echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
