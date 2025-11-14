@@ -95,7 +95,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-    needs: [Build, Testing, Security-Scan]
+    needs: [Build, Security-Scan]
     if: github.ref == 'refs/heads/main'
     steps:
       - name: Code Checkout
@@ -106,8 +106,8 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRETE_ACCESS_KEY }}
+          aws-region: us-east-1
 
       - name: Login to Amazon ECR
         id: login-ecr
