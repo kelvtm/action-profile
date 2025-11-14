@@ -60,3 +60,29 @@ jobs:
       - name: Run test on other branches
         if: github.ref != 'refs/heads/main'
         run: echo "Tests are skipped on non-main branches."
+
+  Security-Scan:
+    runs-on: ubuntu-latest
+    needs: Build
+
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v6-beta
+        with:
+          fetch-depth: 0
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@v0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: json
+          exit-code: 0
+          vun-type: os,library
+          output: trivy-results.json
+
+      - name: Upload Trivy scan result as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-scan-results
+          path: trivy-results.json
